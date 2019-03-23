@@ -48,6 +48,7 @@ import co.cask.cdap.test.DataSetManager;
 import co.cask.cdap.test.TestConfiguration;
 import co.cask.cdap.test.WorkflowManager;
 import org.apache.twill.filesystem.Location;
+import co.cask.cdap.proto.ProgramRunStatus;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -153,7 +154,7 @@ public class PipelineTest extends HydratorTestBase {
 
     WorkflowManager workflowManager = appManager.getWorkflowManager(SmartWorkflow.NAME);
     workflowManager.start(runtimeArgs);
-    workflowManager.waitForFinish(4, TimeUnit.MINUTES);
+    workflowManager.waitForRun(ProgramRunStatus.COMPLETED,4, TimeUnit.MINUTES);
 
     // check the pipeline output
     DataSetManager<Table> outputManager = getDataset(outputName);
@@ -243,7 +244,7 @@ public class PipelineTest extends HydratorTestBase {
 
     WorkflowManager workflowManager = appManager.getWorkflowManager(SmartWorkflow.NAME);
     workflowManager.start(runtimeArgs);
-    workflowManager.waitForFinish(4, TimeUnit.MINUTES);
+    workflowManager.waitForRun(ProgramRunStatus.COMPLETED,4, TimeUnit.MINUTES);
 
     // check the pipeline output
     DataSetManager<FileSet> outputManager = getDataset(outputName);
@@ -302,7 +303,7 @@ public class PipelineTest extends HydratorTestBase {
 
     WorkflowManager workflowManager = appManager.getWorkflowManager(SmartWorkflow.NAME);
     workflowManager.start();
-    workflowManager.waitForFinish(4, TimeUnit.MINUTES);
+    workflowManager.waitForRun(ProgramRunStatus.COMPLETED,4, TimeUnit.MINUTES);
 
     DataSetManager<KeyValueTable> outputManager = getDataset(outputName);
     KeyValueTable output = outputManager.get();
@@ -354,7 +355,7 @@ public class PipelineTest extends HydratorTestBase {
 
     WorkflowManager workflowManager = appManager.getWorkflowManager(SmartWorkflow.NAME);
     workflowManager.start();
-    workflowManager.waitForFinish(4, TimeUnit.MINUTES);
+    workflowManager.waitForRun(ProgramRunStatus.COMPLETED,4, TimeUnit.MINUTES);
 
     DataSetManager<Table> outputManager = getDataset(outputName);
     List<StructuredRecord> outputRecords = MockSink.readOutput(outputManager);
@@ -406,7 +407,7 @@ public class PipelineTest extends HydratorTestBase {
 
     WorkflowManager workflowManager = appManager.getWorkflowManager(SmartWorkflow.NAME);
     workflowManager.start();
-    workflowManager.waitForFinish(4, TimeUnit.MINUTES);
+    workflowManager.waitForRun(ProgramRunStatus.COMPLETED,4, TimeUnit.MINUTES);
 
     DataSetManager<Table> outputManager = getDataset(outputName);
     Set<StructuredRecord> outputRecords = new HashSet<>();
