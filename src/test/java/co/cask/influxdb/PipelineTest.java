@@ -71,7 +71,7 @@ public class PipelineTest extends HydratorTestBase {
     addPluginArtifact(
         NamespaceId.DEFAULT.artifact("influx-plugins", "1.0.0"),
         parentArtifact,
-        TextFileSetSink.class);
+        InfluxDBSink.class);
   }
 
   @Test
@@ -84,13 +84,12 @@ public class PipelineTest extends HydratorTestBase {
     ETLStage source = new ETLStage("source", MockSource.getPlugin(inputName));
 
     Map<String, String> sinkProperties = new HashMap<>();
-    sinkProperties.put(TextFileSetSink.Conf.FILESET_NAME, outputName);
-    sinkProperties.put(TextFileSetSink.Conf.FIELD_SEPARATOR, "|");
-    sinkProperties.put(TextFileSetSink.Conf.OUTPUT_DIR, "${dir}");
+    sinkProperties.put(InfluxDBSink.Conf.FILESET_NAME, outputName);
+    sinkProperties.put(InfluxDBSink.Conf.FIELD_SEPARATOR, "|");
+    sinkProperties.put(InfluxDBSink.Conf.OUTPUT_DIR, "${dir}");
     ETLStage sink =
         new ETLStage(
-            "sink",
-            new ETLPlugin(TextFileSetSink.NAME, BatchSink.PLUGIN_TYPE, sinkProperties, null));
+            "sink", new ETLPlugin(InfluxDBSink.NAME, BatchSink.PLUGIN_TYPE, sinkProperties, null));
 
     ETLBatchConfig pipelineConfig =
         ETLBatchConfig.builder("* * * * *")
