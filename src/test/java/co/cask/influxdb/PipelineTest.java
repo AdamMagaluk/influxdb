@@ -29,6 +29,7 @@ import co.cask.cdap.etl.mock.test.HydratorTestBase;
 import co.cask.cdap.etl.proto.v2.ETLBatchConfig;
 import co.cask.cdap.etl.proto.v2.ETLPlugin;
 import co.cask.cdap.etl.proto.v2.ETLStage;
+import co.cask.cdap.proto.ProgramRunStatus;
 import co.cask.cdap.proto.artifact.AppRequest;
 import co.cask.cdap.proto.id.ApplicationId;
 import co.cask.cdap.proto.id.ArtifactId;
@@ -37,13 +38,6 @@ import co.cask.cdap.test.ApplicationManager;
 import co.cask.cdap.test.DataSetManager;
 import co.cask.cdap.test.TestConfiguration;
 import co.cask.cdap.test.WorkflowManager;
-import org.apache.twill.filesystem.Location;
-import co.cask.cdap.proto.ProgramRunStatus;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -51,29 +45,34 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.twill.filesystem.Location;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
 
-/**
- * Unit tests for our plugins.
- */
+/** Unit tests for our plugins. */
 public class PipelineTest extends HydratorTestBase {
   private static final ArtifactSummary APP_ARTIFACT = new ArtifactSummary("data-pipeline", "1.0.0");
+
   @ClassRule
   public static final TestConfiguration CONFIG = new TestConfiguration("explore.enabled", false);
 
   @BeforeClass
   public static void setupTestClass() throws Exception {
-    ArtifactId parentArtifact = NamespaceId.DEFAULT.artifact(APP_ARTIFACT.getName(), APP_ARTIFACT.getVersion());
+    ArtifactId parentArtifact =
+        NamespaceId.DEFAULT.artifact(APP_ARTIFACT.getName(), APP_ARTIFACT.getVersion());
 
     // add the data-pipeline artifact and mock plugins
     setupBatchArtifacts(parentArtifact, DataPipelineApp.class);
 
     // add our plugins artifact with the data-pipeline artifact as its parent.
     // this will make our plugins available to data-pipeline.
-    addPluginArtifact(NamespaceId.DEFAULT.artifact("influx-plugins", "1.0.0"),
-                      parentArtifact,
-                      TextFileSetSink.class);
+    addPluginArtifact(
+        NamespaceId.DEFAULT.artifact("influx-plugins", "1.0.0"),
+        parentArtifact,
+        TextFileSetSink.class);
   }
-
 
   @Test
   public void testTextFileSink() throws Exception {
@@ -88,23 +87,29 @@ public class PipelineTest extends HydratorTestBase {
     sinkProperties.put(TextFileSetSink.Conf.FILESET_NAME, outputName);
     sinkProperties.put(TextFileSetSink.Conf.FIELD_SEPARATOR, "|");
     sinkProperties.put(TextFileSetSink.Conf.OUTPUT_DIR, "${dir}");
-    ETLStage sink = new ETLStage("sink", new ETLPlugin(TextFileSetSink.NAME, BatchSink.PLUGIN_TYPE,
-                                                       sinkProperties, null));
+    ETLStage sink =
+        new ETLStage(
+            "sink",
+            new ETLPlugin(TextFileSetSink.NAME, BatchSink.PLUGIN_TYPE, sinkProperties, null));
 
-    ETLBatchConfig pipelineConfig = ETLBatchConfig.builder("* * * * *")
-      .addStage(source)
-      .addStage(sink)
-      .addConnection(source.getName(), sink.getName())
-      .build();
+    ETLBatchConfig pipelineConfig =
+        ETLBatchConfig.builder("* * * * *")
+            .addStage(source)
+            .addStage(sink)
+            .addConnection(source.getName(), sink.getName())
+            .build();
 
     // create the pipeline
     ApplicationId pipelineId = NamespaceId.DEFAULT.app("textSinkTestPipeline");
-    ApplicationManager appManager = deployApplication(pipelineId, new AppRequest<>(APP_ARTIFACT, pipelineConfig));
+    ApplicationManager appManager =
+        deployApplication(pipelineId, new AppRequest<>(APP_ARTIFACT, pipelineConfig));
 
     // write some data to the input fileset
-    Schema inputSchema = Schema.recordOf("test",
-                                         Schema.Field.of("name", Schema.of(Schema.Type.STRING)),
-                                         Schema.Field.of("item", Schema.of(Schema.Type.STRING)));
+    Schema inputSchema =
+        Schema.recordOf(
+            "test",
+            Schema.Field.of("name", Schema.of(Schema.Type.STRING)),
+            Schema.Field.of("item", Schema.of(Schema.Type.STRING)));
 
     Map<String, String> users = new HashMap<>();
     users.put("samuel", "wallet");
@@ -115,7 +120,8 @@ public class PipelineTest extends HydratorTestBase {
     for (Map.Entry<String, String> userEntry : users.entrySet()) {
       String name = userEntry.getKey();
       String item = userEntry.getValue();
-      inputRecords.add(StructuredRecord.builder(inputSchema).set("name", name).set("item", item).build());
+      inputRecords.add(
+          StructuredRecord.builder(inputSchema).set("name", name).set("item", item).build());
     }
     DataSetManager<Table> inputManager = getDataset(inputName);
     MockSource.writeInput(inputManager, inputRecords);
@@ -127,7 +133,7 @@ public class PipelineTest extends HydratorTestBase {
 
     WorkflowManager workflowManager = appManager.getWorkflowManager(SmartWorkflow.NAME);
     workflowManager.start(runtimeArgs);
-    workflowManager.waitForRun(ProgramRunStatus.COMPLETED,4, TimeUnit.MINUTES);
+    workflowManager.waitForRun(ProgramRunStatus.COMPLETED, 4, TimeUnit.MINUTES);
 
     // check the pipeline output
     DataSetManager<FileSet> outputManager = getDataset(outputName);
@@ -140,7 +146,8 @@ public class PipelineTest extends HydratorTestBase {
         Assert.fail("Post action did not delete file " + outputFile.getName());
       }
 
-      try (BufferedReader reader = new BufferedReader(new InputStreamReader(outputFile.getInputStream()))) {
+      try (BufferedReader reader =
+          new BufferedReader(new InputStreamReader(outputFile.getInputStream()))) {
         String line;
         while ((line = reader.readLine()) != null) {
           String[] parts = line.split("\\|");
