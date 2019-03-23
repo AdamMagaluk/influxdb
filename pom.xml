@@ -31,6 +31,7 @@
     <cdap.version>5.1.2</cdap.version>
     <hadoop.version>2.3.0</hadoop.version>
     <hydrator.version>2.1.2</hydrator.version>
+    <influxdb.version>2.15</influxdb.version>
     <!-- properties for script build step that creates the config files for the artifacts -->
     <widgets.dir>widgets</widgets.dir>
     <docs.dir>docs</docs.dir>
@@ -70,6 +71,12 @@
       <groupId>co.cask.hydrator</groupId>
       <artifactId>hydrator-common</artifactId>
       <version>${hydrator.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.influxdb/influxdb-java -->
+    <dependency>
+      <groupId>org.influxdb</groupId>
+      <artifactId>influxdb-java</artifactId>
+      <version>${influxdb.version}</version>
     </dependency>
     <dependency>
       <groupId>co.cask.cdap</groupId>
