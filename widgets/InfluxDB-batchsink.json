@@ -4,7 +4,7 @@
   },
   "configuration-groups": [
     {
-      "label": "Text FileSet Sink Configuration",
+      "label": "InfluxDB Sink Configuration",
       "properties": [
         {
           "widget-type": "dataset-selector",

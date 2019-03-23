@@ -50,15 +50,15 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
  * third parameters are the key and value expected by Hadoop's {@link TextOutputFormat}.
  */
 @Plugin(type = BatchSink.PLUGIN_TYPE)
-@Name(TextFileSetSink.NAME)
-@Description("Writes to a FileSet in text format.")
-public class TextFileSetSink extends BatchSink<StructuredRecord, NullWritable, Text> {
-  public static final String NAME = "TextFileSet";
+@Name(InfluxDBSink.NAME)
+@Description("Writes to a InfluxDB database.")
+public class InfluxDBSink extends BatchSink<StructuredRecord, NullWritable, Text> {
+  public static final String NAME = "InfluxDB";
   private final Conf config;
 
   // CDAP will pass in a config with its fields populated based on the configuration given when
   // creating the pipeline.
-  public TextFileSetSink(Conf config) {
+  public InfluxDBSink(Conf config) {
     this.config = config;
   }
 
