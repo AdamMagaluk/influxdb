@@ -30,6 +30,7 @@
     <spark.version>1.6.1</spark.version>
     <cdap.version>5.1.2</cdap.version>
     <hadoop.version>2.3.0</hadoop.version>
+    <hydrator.version>2.1.2</hydrator.version>
     <!-- properties for script build step that creates the config files for the artifacts -->
     <widgets.dir>widgets</widgets.dir>
     <docs.dir>docs</docs.dir>
@@ -61,8 +62,24 @@
       <version>${cdap.version}</version>
     </dependency>
     <dependency>
+      <groupId>co.cask.hydrator</groupId>
+      <artifactId>format-common</artifactId>
+      <version>${hydrator.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>co.cask.hydrator</groupId>
+      <artifactId>hydrator-common</artifactId>
+      <version>${hydrator.version}</version>
+    </dependency>
+    <dependency>
       <groupId>co.cask.cdap</groupId>
       <artifactId>cdap-data-pipeline</artifactId>
+      <version>${cdap.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>co.cask.cdap</groupId>
+      <artifactId>hydrator-test</artifactId>
       <version>${cdap.version}</version>
       <scope>test</scope>
     </dependency>

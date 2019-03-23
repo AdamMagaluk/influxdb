@@ -23,9 +23,6 @@ import co.cask.cdap.api.annotation.Plugin;
 import co.cask.cdap.api.data.batch.Output;
 import co.cask.cdap.api.data.format.StructuredRecord;
 import co.cask.cdap.api.data.schema.Schema;
-import co.cask.cdap.api.dataset.lib.FileSet;
-import co.cask.cdap.api.dataset.lib.FileSetArguments;
-import co.cask.cdap.api.dataset.lib.FileSetProperties;
 import co.cask.cdap.api.dataset.lib.KeyValue;
 import co.cask.cdap.api.plugin.PluginConfig;
 import co.cask.cdap.etl.api.Emitter;
@@ -33,18 +30,18 @@ import co.cask.cdap.etl.api.PipelineConfigurer;
 import co.cask.cdap.etl.api.batch.BatchRuntimeContext;
 import co.cask.cdap.etl.api.batch.BatchSink;
 import co.cask.cdap.etl.api.batch.BatchSinkContext;
-import java.util.HashMap;
+import co.cask.hydrator.common.LineageRecorder;
+import co.cask.hydrator.common.batch.sink.SinkOutputFormatProvider;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 /**
- * Batch Sink that writes to a FileSet in text format. Each record will be written as a single line,
- * with record fields separated by a configurable separator.
+ * Batch Sink that writes to a InfluxDB. Each record will be written metric entry in InfluxDB.
  *
  * <p>StructuredRecord is the first parameter because that is the input to the sink. The second and
  * third parameters are the key and value expected by Hadoop's {@link TextOutputFormat}.
@@ -66,28 +63,46 @@ public class InfluxDBSink extends BatchSink<StructuredRecord, NullWritable, Text
   // Any static configuration should be performed here.
   @Override
   public void configurePipeline(PipelineConfigurer pipelineConfigurer) {
-    // create the FileSet here.
-    pipelineConfigurer.createDataset(
-        config.fileSetName,
-        FileSet.class,
-        FileSetProperties.builder()
-            .setInputFormat(TextInputFormat.class)
-            .setOutputFormat(TextOutputFormat.class)
-            .setEnableExploreOnCreate(true)
-            .setExploreFormat("text")
-            .setExploreSchema("text string")
-            .build());
+    super.configurePipeline(pipelineConfigurer);
+    config.validate();
   }
 
   // prepareRun is called before every pipeline run, and is used to configure what the input should
-  // be,
-  // as well as any arguments the input should use. It is called by the client that is submitting
+  // be, as well as any arguments the input should use. It is called by the client that is
+  // submitting
   // the batch job.
   @Override
   public void prepareRun(BatchSinkContext context) throws Exception {
-    Map<String, String> arguments = new HashMap<>();
-    FileSetArguments.setOutputPath(arguments, config.outputDir);
-    context.addOutput(Output.ofDataset(config.fileSetName, arguments));
+    // validate config.
+    config.validate();
+
+    // Create a Hadoop Configuration from sink config.
+    Configuration configuration = new Configuration();
+    InfluxDBOutputFormat.configure(configuration, config);
+
+    // TODO: Add reference name to the Configuration and use instead of constant.
+    String referenceName = "influxdb";
+
+    // Setup lineage.
+    Schema inputSchema = context.getInputSchema();
+    LineageRecorder lineageRecorder = new LineageRecorder(context, referenceName);
+    lineageRecorder.createExternalDataset(inputSchema);
+
+    // Setup output.
+    context.addOutput(
+        Output.of(
+            referenceName,
+            new SinkOutputFormatProvider(InfluxDBOutputFormat.class, configuration)));
+
+    // record field level lineage information
+    if (inputSchema != null
+        && inputSchema.getFields() != null
+        && !inputSchema.getFields().isEmpty()) {
+      lineageRecorder.recordWrite(
+          "Write",
+          "Wrote to InfluxDB",
+          inputSchema.getFields().stream().map(Schema.Field::getName).collect(Collectors.toList()));
+    }
   }
 
   // onRunFinish is called at the end of the pipeline run by the client that submitted the batch
@@ -170,6 +185,10 @@ public class InfluxDBSink extends BatchSink<StructuredRecord, NullWritable, Text
     public Conf() {
       fileSetName = "";
       fieldSeparator = ",";
+    }
+
+    public void validate() {
+      // Validate config.
     }
   }
 }
