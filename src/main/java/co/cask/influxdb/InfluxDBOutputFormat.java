@@ -35,6 +35,8 @@ public class InfluxDBOutputFormat extends OutputFormat<NullWritable, Text> {
 
     // Init the InfluxDB Client.
 
+    LOG.warn("Creating InfluxDB client.");
+
     // Create the RecordWriter by passing in the Client.
     return new InfluxDBRecordWriter();
   }
@@ -50,12 +52,15 @@ public class InfluxDBOutputFormat extends OutputFormat<NullWritable, Text> {
     }
 
     @Override
-    public void write(NullWritable key, Text value) throws IOException {}
+    public void write(NullWritable key, Text value) throws IOException {
+      LOG.warn("Writing entry to influxdb ", value);
+    }
 
     @Override
     public void close(TaskAttemptContext taskAttemptContext) throws IOException {
       try {
         // flush batches and wait until done.
+        LOG.warn("Shutting down InfluxDB client.");
 
       } catch (Exception e) {
         throw new IOException("Error publishing records to InfluxDB", e);

@@ -19,7 +19,6 @@ package co.cask.influxdb;
 import co.cask.cdap.api.artifact.ArtifactSummary;
 import co.cask.cdap.api.data.format.StructuredRecord;
 import co.cask.cdap.api.data.schema.Schema;
-import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.datapipeline.DataPipelineApp;
 import co.cask.cdap.datapipeline.SmartWorkflow;
@@ -38,15 +37,12 @@ import co.cask.cdap.test.ApplicationManager;
 import co.cask.cdap.test.DataSetManager;
 import co.cask.cdap.test.TestConfiguration;
 import co.cask.cdap.test.WorkflowManager;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import co.cask.influxdb.InfluxDBSink.Conf;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.apache.twill.filesystem.Location;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -84,9 +80,7 @@ public class PipelineTest extends HydratorTestBase {
     ETLStage source = new ETLStage("source", MockSource.getPlugin(inputName));
 
     Map<String, String> sinkProperties = new HashMap<>();
-    sinkProperties.put(InfluxDBSink.Conf.FILESET_NAME, outputName);
-    sinkProperties.put(InfluxDBSink.Conf.FIELD_SEPARATOR, "|");
-    sinkProperties.put(InfluxDBSink.Conf.OUTPUT_DIR, "${dir}");
+    sinkProperties.put(Conf.URL, outputName);
     ETLStage sink =
         new ETLStage(
             "sink", new ETLPlugin(InfluxDBSink.NAME, BatchSink.PLUGIN_TYPE, sinkProperties, null));
@@ -135,26 +129,6 @@ public class PipelineTest extends HydratorTestBase {
     workflowManager.waitForRun(ProgramRunStatus.COMPLETED, 4, TimeUnit.MINUTES);
 
     // check the pipeline output
-    DataSetManager<FileSet> outputManager = getDataset(outputName);
-    FileSet output = outputManager.get();
-    Location outputDir = output.getBaseLocation().append(outputDirName);
-
-    Map<String, String> actual = new HashMap<>();
-    for (Location outputFile : outputDir.list()) {
-      if (outputFile.getName().endsWith(".crc") || "_SUCCESS".equals(outputFile.getName())) {
-        Assert.fail("Post action did not delete file " + outputFile.getName());
-      }
-
-      try (BufferedReader reader =
-          new BufferedReader(new InputStreamReader(outputFile.getInputStream()))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-          String[] parts = line.split("\\|");
-          actual.put(parts[0], parts[1]);
-        }
-      }
-    }
-
-    Assert.assertEquals(actual, users);
+    // TODO: We should mock the InfluxDB client and ensure each emtric is written.
   }
 }

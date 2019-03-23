@@ -7,19 +7,9 @@
       "label": "InfluxDB Sink Configuration",
       "properties": [
         {
-          "widget-type": "dataset-selector",
-          "label": "FileSet Name",
-          "name": "fileSetName"
-        },
-        {
           "widget-type": "textbox",
-          "label": "Field separator",
-          "name": "fieldSeparator"
-        },
-        {
-          "widget-type": "textbox",
-          "label": "Field separator",
-          "name": "outputDir"
+          "label": "InfluxDB URL",
+          "name": "url"
         }
       ]
     }

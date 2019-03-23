@@ -34,11 +34,12 @@ import co.cask.hydrator.common.LineageRecorder;
 import co.cask.hydrator.common.batch.sink.SinkOutputFormatProvider;
 import java.util.Iterator;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Batch Sink that writes to a InfluxDB. Each record will be written metric entry in InfluxDB.
@@ -52,6 +53,8 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 public class InfluxDBSink extends BatchSink<StructuredRecord, NullWritable, Text> {
   public static final String NAME = "InfluxDB";
   private final Conf config;
+
+  private static final Logger LOG = LoggerFactory.getLogger(InfluxDBOutputFormat.class);
 
   // CDAP will pass in a config with its fields populated based on the configuration given when
   // creating the pipeline.
@@ -146,45 +149,35 @@ public class InfluxDBSink extends BatchSink<StructuredRecord, NullWritable, Text
     }
     while (fieldIter.hasNext()) {
       String fieldName = fieldIter.next().getName();
-      joinedFields.append(config.fieldSeparator);
+      joinedFields.append("|");
       val = input.get(fieldName);
       if (val != null) {
         joinedFields.append(val);
       }
     }
+
+    LOG.warn("Transform...");
     emitter.emit(new KeyValue<>(NullWritable.get(), new Text(joinedFields.toString())));
   }
 
   /** Config properties for the plugin. */
   public static class Conf extends PluginConfig {
-    public static final String FILESET_NAME = "fileSetName";
-    public static final String OUTPUT_DIR = "outputDir";
-    public static final String FIELD_SEPARATOR = "fieldSeparator";
+    public static final String URL = "url";
 
     // The name annotation tells CDAP what the property name is. It is optional, and defaults to the
     // variable name.
-    // Note:  only primitives (including boxed types) and string are the types that are supported
-    @Name(FILESET_NAME)
-    @Description("The name of the FileSet to write to.")
-    private String fileSetName;
-
+    // Note: only primitives (including boxed types) and string are the types that are supported
     // Macro enabled properties can be set to a placeholder value ${key} when the pipeline is
     // deployed.
     // At runtime, the value for 'key' can be given and substituted in.
     @Macro
-    @Name(OUTPUT_DIR)
-    @Description("The FileSet directory to write to.")
-    private String outputDir;
-
-    @Nullable
-    @Name(FIELD_SEPARATOR)
-    @Description("The separator to use to join input record fields together. Defaults to ','.")
-    private String fieldSeparator;
+    @Name(URL)
+    @Description("The URL of the InfluxDB server to write to.")
+    private String url;
 
     // Use a no-args constructor to set field defaults.
     public Conf() {
-      fileSetName = "";
-      fieldSeparator = ",";
+      url = "";
     }
 
     public void validate() {
