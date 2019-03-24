@@ -74,7 +74,7 @@ public class PipelineTest extends HydratorTestBase {
   public void testTextFileSink() throws Exception {
     // create the pipeline config
     String inputName = "sinkTestInput";
-    String outputName = "sinkTestOutput";
+    String outputName = "http://localhost:8086/";
     String outputDirName = "users";
 
     ETLStage source = new ETLStage("source", MockSource.getPlugin(inputName));
@@ -129,6 +129,6 @@ public class PipelineTest extends HydratorTestBase {
     workflowManager.waitForRun(ProgramRunStatus.COMPLETED, 4, TimeUnit.MINUTES);
 
     // check the pipeline output
-    // TODO: We should mock the InfluxDB client and ensure each emtric is written.
+    // TODO: We should mock the InfluxDB client and ensure each metric is written.
   }
 }

@@ -32,12 +32,13 @@ import co.cask.cdap.etl.api.batch.BatchSink;
 import co.cask.cdap.etl.api.batch.BatchSinkContext;
 import co.cask.hydrator.common.LineageRecorder;
 import co.cask.hydrator.common.batch.sink.SinkOutputFormatProvider;
-import java.util.Iterator;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.influxdb.dto.Point;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,12 +46,12 @@ import org.slf4j.LoggerFactory;
  * Batch Sink that writes to a InfluxDB. Each record will be written metric entry in InfluxDB.
  *
  * <p>StructuredRecord is the first parameter because that is the input to the sink. The second and
- * third parameters are the key and value expected by Hadoop's {@link TextOutputFormat}.
+ * third parameters are the key and value expected by Hadoop.
  */
 @Plugin(type = BatchSink.PLUGIN_TYPE)
 @Name(InfluxDBSink.NAME)
 @Description("Writes to a InfluxDB database.")
-public class InfluxDBSink extends BatchSink<StructuredRecord, NullWritable, Text> {
+public class InfluxDBSink extends BatchSink<StructuredRecord, NullWritable, Point> {
   public static final String NAME = "InfluxDB";
   private final Conf config;
 
@@ -134,30 +135,18 @@ public class InfluxDBSink extends BatchSink<StructuredRecord, NullWritable, Text
   }
 
   @Override
-  public void transform(StructuredRecord input, Emitter<KeyValue<NullWritable, Text>> emitter)
+  public void transform(StructuredRecord input, Emitter<KeyValue<NullWritable, Point>> emitter)
       throws Exception {
-    StringBuilder joinedFields = new StringBuilder();
-    Iterator<Schema.Field> fieldIter = input.getSchema().getFields().iterator();
-    if (!fieldIter.hasNext()) {
-      // shouldn't happen
-      return;
-    }
+    // Hardcode a Point for now.
+    Point point =
+        Point.measurement("cpu")
+            .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+            .addField("idle", 20L)
+            .addField("user", 12L)
+            .addField("system", 2L)
+            .build();
 
-    Object val = input.get(fieldIter.next().getName());
-    if (val != null) {
-      joinedFields.append(val);
-    }
-    while (fieldIter.hasNext()) {
-      String fieldName = fieldIter.next().getName();
-      joinedFields.append("|");
-      val = input.get(fieldName);
-      if (val != null) {
-        joinedFields.append(val);
-      }
-    }
-
-    LOG.warn("Transform...");
-    emitter.emit(new KeyValue<>(NullWritable.get(), new Text(joinedFields.toString())));
+    emitter.emit(new KeyValue<>(NullWritable.get(), point));
   }
 
   /** Config properties for the plugin. */
@@ -180,8 +169,19 @@ public class InfluxDBSink extends BatchSink<StructuredRecord, NullWritable, Text
       url = "";
     }
 
+    // Validate config.
     public void validate() {
-      // Validate config.
+
+      // Parse the URI
+      try {
+        new URI(url);
+      } catch (URISyntaxException e) {
+        throw new IllegalArgumentException("Unable to parse url: " + url, e);
+      }
+    }
+
+    public String getUrl() {
+      return url;
     }
   }
 }
